@@ -22,8 +22,8 @@ func (m *maxComparableHeap) Pop() interface{} {
 	if m.Len() == 0 {
 		return nil
 	}
-	p := (m.ComparableSlice)[0]
-	m.ComparableSlice = m.ComparableSlice[1:]
+	p := (m.ComparableSlice)[len(m.ComparableSlice)-1]
+	m.ComparableSlice = m.ComparableSlice[:len(m.ComparableSlice)-1]
 	return p
 }
 
@@ -37,8 +37,8 @@ func (m *minComparableHeap) Pop() interface{} {
 	if m.Len() == 0 {
 		return nil
 	}
-	p := (m.ComparableSlice)[0]
-	m.ComparableSlice = m.ComparableSlice[1:]
+	p := (m.ComparableSlice)[len(m.ComparableSlice)-1]
+	m.ComparableSlice = m.ComparableSlice[:len(m.ComparableSlice)-1]
 	return p
 }
 
@@ -49,7 +49,5 @@ func NewComparablePriorityQueue(max bool, items ...types.Comparable) *PriorityQu
 	} else {
 		h = &minComparableHeap{items}
 	}
-	q := &PriorityQueue{h: h}
-	heap.Init(q.h)
-	return q
+	return NewPriorityQueue(h)
 }

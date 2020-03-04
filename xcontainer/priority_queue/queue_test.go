@@ -11,12 +11,13 @@ import (
 func TestStringPriorityQueue(t *testing.T) {
 	t.Run("max", func(t *testing.T) {
 		q := NewStringPriorityQueue(true, "1", "2", "3")
-		assert.Equal(t, q.Pop(), "3")
+		t.Logf("%+v\n", q.h)
+		assert.Equal(t, "3", q.Pop())
 	})
 
 	t.Run("min", func(t *testing.T) {
 		q := NewStringPriorityQueue(false, "1", "2", "3")
-		assert.Equal(t, q.Pop(), "1")
+		assert.Equal(t, "1", q.Pop())
 	})
 }
 

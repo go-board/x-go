@@ -26,8 +26,8 @@ func (s *maxInt64Heap) Pop() interface{} {
 	if len(*s) == 0 {
 		return nil
 	}
-	q := (*s)[0]
-	*s = (*s)[1:]
+	q := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
 	return q
 }
 
@@ -53,8 +53,8 @@ func (s *minInt64Heap) Pop() interface{} {
 	if len(*s) == 0 {
 		return nil
 	}
-	q := (*s)[0]
-	*s = (*s)[1:]
+	q := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
 	return q
 }
 
@@ -67,7 +67,5 @@ func NewInt64PriorityQueue(max bool, items ...int64) *PriorityQueue {
 		t := minInt64Heap(items)
 		h = &t
 	}
-	q := &PriorityQueue{h: h}
-	heap.Init(q.h)
-	return q
+	return NewPriorityQueue(h)
 }
