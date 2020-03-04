@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option go_package = "internal";
+
+message Test {
+    string a = 1;
+    bool b = 2;
+    int64 c = 3;
+}
