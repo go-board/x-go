@@ -10,7 +10,7 @@ import (
 
 const AesCipherKeySize = 32 // aes key size, 256 bit
 
-// AesEncryptRaw encrypt original `data` with `token` and initializer vector `iv`
+// AesEncryptRaw encrypt original `data` with `key` and initializer vector `iv`
 // iv should have at least `aes.BlockSize` length
 func AesEncryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 	if len(key) < AesCipherKeySize {
@@ -34,7 +34,7 @@ func AesEncryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 	return dst, nil
 }
 
-// AesEncryptRaw encrypt original `data` with `token` and initializer vector `iv`
+// AesDecryptRaw decrypt original `data` with `key` and initializer vector `iv`
 // iv should have at least `aes.BlockSize` length
 func AesDecryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 	if len(key) < AesCipherKeySize {
