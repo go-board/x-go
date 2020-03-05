@@ -1,9 +1,9 @@
-//+build !go1.14
+//+build go1.14
 
 package runtime
 
 import (
-	"github.com/go-board/x-go/xhash/internal/maphash"
+	"hash/maphash"
 )
 
 func String(str string) uint64 {
