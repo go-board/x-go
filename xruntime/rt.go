@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 )
 
 // CallerName return current caller name
@@ -45,11 +46,19 @@ func Stack(pretty bool) []byte {
 }
 
 var gogc int
+var gogcOnce sync.Once
 
+// SetGoGc sets the garbage collection target percentage
+// capture initial gc percentage first
+// if gc > 0, set gc percentage to gc.
+// else restore initial gc percentage and return.
 func SetGoGc(gc int) {
-	gogc = debug.SetGCPercent(gc)
-}
-
-func RestoreGoGc() {
-	debug.SetGCPercent(gogc)
+	gogcOnce.Do(func() {
+		gogc = debug.SetGCPercent(0)
+	})
+	if gc > 0 {
+		debug.SetGCPercent(gc)
+	} else {
+		debug.SetGCPercent(gogc)
+	}
 }
