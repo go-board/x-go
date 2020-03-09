@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ReadInt try read int stored in context.Context identified by key.
 func ReadInt(ctx context.Context, key interface{}) (int, bool) {
 	v := ctx.Value(key)
 	if v == nil {
@@ -22,6 +23,7 @@ func ReadInt(ctx context.Context, key interface{}) (int, bool) {
 	}
 }
 
+// ReadInt64 try read int64 stored in context.Context identified by key.
 func ReadInt64(ctx context.Context, key interface{}) (int64, bool) {
 	v := ctx.Value(key)
 	if v == nil {
@@ -39,6 +41,7 @@ func ReadInt64(ctx context.Context, key interface{}) (int64, bool) {
 	}
 }
 
+// ReadString try read string stored in context.Context identified by key.
 func ReadString(ctx context.Context, key interface{}) (string, bool) {
 	v := ctx.Value(key)
 	if v == nil {
@@ -54,6 +57,7 @@ func ReadString(ctx context.Context, key interface{}) (string, bool) {
 	}
 }
 
+// ReadTime try read time.Time stored in context.Context identified by key.
 func ReadTime(ctx context.Context, key interface{}) (time.Time, bool) {
 	v := ctx.Value(key)
 	if v == nil {
