@@ -21,10 +21,7 @@ func AesEncryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 		return nil, errors.New("err: cipher iv too short, length less than 16")
 	}
 	iv = iv[:aes.BlockSize]
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
+	block, _ := aes.NewCipher(key) // ignore not reachable error
 	blockMode := cipher.NewCBCEncrypter(block, iv)
 	encodedData := pkcs5Padding(data, block.BlockSize())
 	encryptedData := make([]byte, len(encodedData))
@@ -49,10 +46,7 @@ func AesDecryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 	if _, err := hex.Decode(decodedData, data); err != nil {
 		return nil, err
 	}
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return nil, err
-	}
+	block, _ := aes.NewCipher(key) // ignore not reachable error
 	blockMode := cipher.NewCBCDecrypter(block, iv)
 	origData := make([]byte, len(decodedData))
 	blockMode.CryptBlocks(origData, decodedData)
