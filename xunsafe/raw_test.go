@@ -63,6 +63,13 @@ func BenchmarkStringToBytes(b *testing.B) {
 			StringToBytes(gStr)
 		}
 	})
+	b.Run("fast", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			StringToBytesFast(gStr)
+		}
+	})
 }
 
 func BenchmarkBytesToString(b *testing.B) {
