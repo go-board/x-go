@@ -42,16 +42,15 @@ func AesDecryptRaw(data []byte, key []byte, iv []byte) ([]byte, error) {
 		return nil, errors.New("err: cipher iv too short, length less than 16")
 	}
 	iv = iv[:aes.BlockSize]
-	decodedData := make([]byte, hex.DecodedLen(len(data)))
+	decodedLen := hex.DecodedLen(len(data))
+	decodedData := make([]byte, decodedLen)
 	if _, err := hex.Decode(decodedData, data); err != nil {
 		return nil, err
 	}
 	block, _ := aes.NewCipher(key) // ignore not reachable error
 	blockMode := cipher.NewCBCDecrypter(block, iv)
-	origData := make([]byte, len(decodedData))
-	blockMode.CryptBlocks(origData, decodedData)
-	origData = pkcs5UnPadding(origData)
-	return origData, nil
+	blockMode.CryptBlocks(decodedData, decodedData)
+	return pkcs5UnPadding(decodedData[:decodedLen]), nil
 }
 
 func pkcs5Padding(cipherText []byte, blockSize int) []byte {
