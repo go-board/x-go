@@ -36,7 +36,7 @@ func (r *Response) ContentLength() int64 { return r.Response.ContentLength }
 // Status return response status.
 func (r *Response) Status() *xhttp.Status { return r.status }
 
-// Body return response body interface.
+// RequestBody return response body interface.
 func (r *Response) Body() io.Reader { return r.Response.Body }
 
 // Close close response body.

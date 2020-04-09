@@ -2,102 +2,10 @@ package xrequest
 
 import (
 	"context"
-	"log"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/go-board/x-go/xnet/xhttp"
-	"github.com/go-board/x-go/xslice"
 )
-
-// RoundTripperFn implement http.RoundTripper for convenient usage.
-type RoundTripperFn func(req *http.Request) (*http.Response, error)
-
-func (fn RoundTripperFn) RoundTrip(request *http.Request) (*http.Response, error) {
-	return fn(request)
-}
-
-// Interceptor is interceptor that can do more work before/after an request
-type Interceptor interface {
-	Next(fn http.RoundTripper) http.RoundTripper
-}
-
-type InterceptorFn func(rt http.RoundTripper) http.RoundTripper
-
-func (fn InterceptorFn) Next(rt http.RoundTripper) http.RoundTripper { return fn(rt) }
-
-// Logging is Interceptor that log http request stats
-func Logging(rt http.RoundTripper) http.RoundTripper {
-	return RoundTripperFn(func(req *http.Request) (*http.Response, error) {
-		before := time.Now()
-		response, err := rt.RoundTrip(req)
-		if err != nil {
-			log.Printf("%s %s, latency: %s, status: %s\n", req.Method, req.URL.Path, time.Since(before), err)
-		} else {
-			log.Printf("%s %s, latency: %s, status: %s\n", req.Method, req.URL.Path, time.Since(before), response.Status)
-		}
-		return response, err
-	})
-}
-
-// RetryOnStatusCode retry on return codes...
-func RetryOnStatusCode(codes ...int) InterceptorFn {
-	return func(rt http.RoundTripper) http.RoundTripper {
-		return RoundTripperFn(func(req *http.Request) (response *http.Response, err error) {
-			for i := 0; i < 3; i++ {
-				response, err = rt.RoundTrip(req)
-				if err != nil || (response != nil && xslice.ContainsInt(codes, response.StatusCode)) {
-					continue
-				}
-				return
-			}
-			return
-		})
-	}
-}
-
-// RetryStrategy is strategy for http request
-type RetryStrategy struct {
-	Backoff     func(r *http.Request, i int) time.Duration
-	MaxRetries  func(r *http.Request) int
-	ShouldRetry func(r *http.Request, resp *http.Response, err error) bool
-}
-
-// RetryWithStrategy retry with given strategy.
-func RetryWithStrategy(strategy RetryStrategy) InterceptorFn {
-	if strategy.Backoff == nil {
-		strategy.Backoff = func(r *http.Request, i int) time.Duration { return 0 }
-	}
-	if strategy.MaxRetries == nil {
-		strategy.MaxRetries = func(r *http.Request) int {
-			if retryStr := r.Header.Get("X-Max-Retries"); retryStr != "" {
-				if retries, err := strconv.ParseInt(retryStr, 10, 64); err == nil {
-					return int(retries)
-				}
-			}
-			return 3
-		}
-	}
-	if strategy.ShouldRetry == nil {
-		strategy.ShouldRetry = func(r *http.Request, resp *http.Response, err error) bool {
-			return err != nil || xslice.ContainsInt([]int{500}, resp.StatusCode)
-		}
-	}
-	return func(rt http.RoundTripper) http.RoundTripper {
-		return RoundTripperFn(func(req *http.Request) (response *http.Response, err error) {
-			maxRetries := strategy.MaxRetries(req)
-			for i := 0; i < maxRetries; i++ {
-				response, err = rt.RoundTrip(req)
-				if strategy.ShouldRetry(req, response, err) {
-					continue
-				}
-				return
-			}
-			return
-		})
-	}
-}
 
 // Client is a client to perform http request and retrieve http response.
 // Field client is *http.Client that real perform request.
@@ -124,7 +32,7 @@ func NewHttpClient(client *http.Client, interceptors ...Interceptor) *Client {
 	return &Client{client: client, interceptors: interceptors}
 }
 
-func (c *Client) newRequest(ctx context.Context, method string, url string, body xhttp.Body, options ...RequestOption) (*http.Request, error) {
+func (c *Client) newRequest(ctx context.Context, method string, url string, body xhttp.RequestBody, options ...RequestOption) (*http.Request, error) {
 	r, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
@@ -189,7 +97,7 @@ func (c *Client) Get(ctx context.Context, url string, options ...RequestOption) 
 }
 
 // Post do POST request.
-func (c *Client) Post(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func (c *Client) Post(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	r, err := c.newRequest(ctx, http.MethodPost, url, body, options...)
 	if err != nil {
 		return nil, err
@@ -199,7 +107,7 @@ func (c *Client) Post(ctx context.Context, url string, body xhttp.Body, options 
 }
 
 // Put do PUT request.
-func (c *Client) Put(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func (c *Client) Put(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	r, err := c.newRequest(ctx, http.MethodPut, url, body, options...)
 	if err != nil {
 		return nil, err
@@ -209,7 +117,7 @@ func (c *Client) Put(ctx context.Context, url string, body xhttp.Body, options .
 }
 
 // Patch do PATCH request.
-func (c *Client) Patch(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func (c *Client) Patch(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	r, err := c.newRequest(ctx, http.MethodPatch, url, body, options...)
 	if err != nil {
 		return nil, err
@@ -219,7 +127,7 @@ func (c *Client) Patch(ctx context.Context, url string, body xhttp.Body, options
 }
 
 // Delete do DELETE request.
-func (c *Client) Delete(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func (c *Client) Delete(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	r, err := c.newRequest(ctx, http.MethodDelete, url, body, options...)
 	if err != nil {
 		return nil, err
@@ -254,21 +162,21 @@ func Get(ctx context.Context, url string, options ...RequestOption) (*Response, 
 }
 
 // Post do POST request.
-func Post(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func Post(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	return DefaultClient.Post(ctx, url, body, options...)
 }
 
 // Put do PUT request.
-func Put(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func Put(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	return DefaultClient.Put(ctx, url, body, options...)
 }
 
 // Patch do PATCH request.
-func Patch(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func Patch(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	return DefaultClient.Patch(ctx, url, body, options...)
 }
 
 // Delete do DELETE request.
-func Delete(ctx context.Context, url string, body xhttp.Body, options ...RequestOption) (*Response, error) {
+func Delete(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
 	return DefaultClient.Delete(ctx, url, body, options...)
 }

@@ -116,8 +116,8 @@ func (s *Status) IsClientError() bool { return s.code/100 == 4 }
 // IsServerError check the error occur in server side.
 func (s *Status) IsServerError() bool { return s.code/100 == 5 }
 
-// Body is abstract of request body.
-type Body interface {
+// RequestBody is abstract of request body.
+type RequestBody interface {
 	io.Reader
 	ContentType() string
 }
@@ -128,7 +128,7 @@ type JsonBody struct {
 	r    io.Reader
 }
 
-// NewJsonBody make new Body
+// NewJsonBody make new RequestBody
 func NewJsonBody(data interface{}) (*JsonBody, error) {
 	b := &JsonBody{Body: data}
 	buf, err := json.Marshal(data)
@@ -149,7 +149,7 @@ type XmlBody struct {
 	r    io.Reader
 }
 
-// NewXmlBody make new Body
+// NewXmlBody make new RequestBody
 func NewXmlBody(data interface{}) (*XmlBody, error) {
 	b := &XmlBody{Body: data}
 	buf, err := xml.Marshal(data)
@@ -170,7 +170,7 @@ type UrlEncodedBody struct {
 	r    io.Reader
 }
 
-// NewUrlEncodedBody make new Body
+// NewUrlEncodedBody make new RequestBody
 func NewUrlEncodedBody(data url.Values) (*UrlEncodedBody, error) {
 	b := &UrlEncodedBody{Body: data}
 	encoded := data.Encode()
@@ -193,7 +193,7 @@ type BinaryBody struct {
 	contentType string
 }
 
-// NewBinaryBody make new Body
+// NewBinaryBody make new RequestBody
 func NewBinaryBody(data []byte, contentType string) (*BinaryBody, error) {
 	if contentType == "" {
 		return nil, errors.New("err: nil content-type")
