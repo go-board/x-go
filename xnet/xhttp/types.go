@@ -1,4 +1,4 @@
-package xrequest
+package xhttp
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -70,6 +71,29 @@ func (m Method) Cacheable() bool {
 type Status struct {
 	code int
 	msg  string
+}
+
+// NewStatus create new status
+func NewStatus(code int, msg string) *Status {
+	return &Status{
+		code: code,
+		msg:  msg,
+	}
+}
+
+// StatusOk return ok status
+func StatusOk() *Status {
+	return &Status{code: http.StatusOK, msg: http.StatusText(http.StatusOK)}
+}
+
+// StatusBadRequest is bad request -- 400
+func StatusBadRequest() *Status {
+	return &Status{code: http.StatusBadRequest, msg: http.StatusText(http.StatusBadRequest)}
+}
+
+// StatusServerInternalError is server error -- 500
+func StatusServerInternalError() *Status {
+	return &Status{code: http.StatusInternalServerError, msg: http.StatusText(http.StatusInternalServerError)}
 }
 
 // Code return status code.

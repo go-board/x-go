@@ -7,16 +7,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/go-board/x-go/xnet/xhttp"
 )
 
 // Response is wrapper of http.Response with extra convenient methods.
 type Response struct {
 	Response *http.Response
-	status   *Status
+	status   *xhttp.Status
 }
 
 func newResponse(r *http.Response) *Response {
-	return &Response{Response: r, status: &Status{code: r.StatusCode, msg: r.Status}}
+	return &Response{Response: r, status: xhttp.NewStatus(r.StatusCode, r.Status)}
 }
 
 // Header return immutable response header which clone the original header.
@@ -32,7 +34,7 @@ func (r *Response) ContentType() string { return r.Response.Header.Get("Content-
 func (r *Response) ContentLength() int64 { return r.Response.ContentLength }
 
 // Status return response status.
-func (r *Response) Status() *Status { return r.status }
+func (r *Response) Status() *xhttp.Status { return r.status }
 
 // Body return response body interface.
 func (r *Response) Body() io.Reader { return r.Response.Body }
