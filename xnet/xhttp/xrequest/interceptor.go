@@ -26,6 +26,14 @@ type InterceptorFn func(rt http.RoundTripper) http.RoundTripper
 
 func (fn InterceptorFn) Next(rt http.RoundTripper) http.RoundTripper { return fn(rt) }
 
+// ComposeInterceptor compose interceptors to given http.RoundTripper
+func ComposeInterceptor(rt http.RoundTripper, interceptors ...Interceptor) http.RoundTripper {
+	if len(interceptors) == 0 {
+		return rt
+	}
+	return ComposeInterceptor(interceptors[0].Next(rt), interceptors[1:]...)
+}
+
 // InjectHeader inject given header into request.
 func InjectHeader(h http.Header) InterceptorFn {
 	return func(rt http.RoundTripper) http.RoundTripper {

@@ -28,9 +28,7 @@ func NewHttpClient(client *http.Client, baseHost string, interceptors ...Interce
 		client.Transport = http.DefaultTransport
 	}
 	// wrapper client.Transport
-	for _, interceptor := range interceptors {
-		client.Transport = interceptor.Next(client.Transport)
-	}
+	client.Transport = ComposeInterceptor(client.Transport, interceptors...)
 	return &Client{client: client, interceptors: interceptors, baseHost: baseHost}
 }
 
