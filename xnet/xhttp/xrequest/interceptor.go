@@ -2,8 +2,10 @@ package xrequest
 
 import (
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-board/x-go/xslice"
@@ -106,6 +108,34 @@ func RetryWithStrategy(strategy RetryStrategy) InterceptorFn {
 				return
 			}
 			return
+		})
+	}
+}
+
+// RoundRobinProxy proxy request with round robin strategy to different server.
+func RoundRobinProxy(hosts ...string) InterceptorFn {
+	if len(hosts) == 0 {
+		panic("empty hosts list")
+	}
+	var term uint64 = 0
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return RoundTripperFn(func(request *http.Request) (*http.Response, error) {
+			host := hosts[atomic.AddUint64(&term, 1)%uint64(len(hosts))]
+			request.Host = host
+			return rt.RoundTrip(request)
+		})
+	}
+}
+
+// RandomProxy proxy request with random strategy to different server.
+func RandomProxy(hosts ...string) InterceptorFn {
+	if len(hosts) == 0 {
+		panic("empty hosts list")
+	}
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return RoundTripperFn(func(request *http.Request) (*http.Response, error) {
+			request.Host = hosts[rand.Intn(len(hosts))]
+			return rt.RoundTrip(request)
 		})
 	}
 }
