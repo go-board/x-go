@@ -22,6 +22,12 @@ type Middleware interface {
 // MiddlewareFn support wrap function with same signature as Middleware.
 type MiddlewareFn func(h http.Handler) http.Handler
 
-func (fn MiddlewareFn) Next(h http.Handler) http.Handler {
-	return fn(h)
+func (fn MiddlewareFn) Next(h http.Handler) http.Handler { return fn(h) }
+
+// ComposeMiddleware compose middlewares to given http.Handler
+func ComposeMiddleware(h http.Handler, middlewares ...Middleware) http.Handler {
+	if len(middlewares) == 0 {
+		return h
+	}
+	return ComposeMiddleware(middlewares[0].Next(h), middlewares[1:]...)
 }
