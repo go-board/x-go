@@ -1,6 +1,7 @@
 package xrequest
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -58,5 +59,11 @@ func WithContentType(contentType string) RequestOption {
 func AddCookie(cookie *http.Cookie) RequestOption {
 	return func(req *http.Request) {
 		req.AddCookie(cookie)
+	}
+}
+
+func WithRequestBody(body RequestBody) RequestOption {
+	return func(req *http.Request) {
+		req.Body = ioutil.NopCloser(body)
 	}
 }

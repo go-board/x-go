@@ -1,6 +1,7 @@
 package xrequest
 
 import (
+	"compress/gzip"
 	"log"
 	"math/rand"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-board/x-go/xnet/xhttp"
 	"github.com/go-board/x-go/xslice"
 )
 
@@ -144,6 +146,26 @@ func RandomProxy(hosts ...string) InterceptorFn {
 		return RoundTripperFn(func(request *http.Request) (*http.Response, error) {
 			request.Host = hosts[rand.Intn(len(hosts))]
 			return rt.RoundTrip(request)
+		})
+	}
+}
+
+// GzipDecompressResponse decompress response body if possible.
+func GzipDecompressResponse() InterceptorFn {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return RoundTripperFn(func(request *http.Request) (*http.Response, error) {
+			response, err := rt.RoundTrip(request)
+			if err != nil {
+				return nil, err
+			}
+			if response.Header.Get(xhttp.HeaderContentEncoding) == "gzip" {
+				r, err := gzip.NewReader(response.Body)
+				if err != nil {
+					return nil, err
+				}
+				response.Body = r
+			}
+			return response, err
 		})
 	}
 }

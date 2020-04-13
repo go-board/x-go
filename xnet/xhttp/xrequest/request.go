@@ -1,162 +1,222 @@
 package xrequest
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-board/x-go/xnet/xhttp"
 )
 
-// Client is a client to perform http request and retrieve http response.
-// Field client is *http.Client that real perform request.
-// Field interceptors is chain of Interceptor to hook client.
-type Client struct {
-	client       *http.Client
-	interceptors []Interceptor
-	baseHost     string
+// Request wrap http.Request and give more method
+type Request struct {
+	R *http.Request
 }
 
-var DefaultClient = &Client{
-	client: http.DefaultClient,
-}
-
-// NewHttpClient create new client.
-func NewHttpClient(client *http.Client, baseHost string, interceptors ...Interceptor) *Client {
-	// try set client.Transport first
-	if client.Transport == nil {
-		client.Transport = http.DefaultTransport
-	}
-	// wrapper client.Transport
-	client.Transport = ComposeInterceptor(client.Transport, interceptors...)
-	return &Client{client: client, interceptors: interceptors, baseHost: baseHost}
-}
-
-func (c *Client) newRequest(ctx context.Context, method string, rawurl string, body xhttp.RequestBody, options ...RequestOption) (*http.Request, error) {
-	if c.baseHost != "" {
-		u, err := url.Parse(rawurl)
-		if err == nil {
-			rawurl = c.baseHost + u.RequestURI()
-		}
-	}
-	r, err := http.NewRequestWithContext(ctx, method, rawurl, body)
+// NewRequest create new http request.
+func NewRequest(ctx context.Context, url string, method string, body RequestBody, options ...RequestOption) (*Request, error) {
+	req, err := http.NewRequestWithContext(ctx, url, method, body)
 	if err != nil {
 		return nil, err
+	}
+	req.Header.Set(xhttp.HeaderContentType, body.ContentType())
+	if contentEncoding := body.ContentEncoding(); contentEncoding != nil {
+		req.Header.Set(xhttp.HeaderContentEncoding, *contentEncoding)
 	}
 	for _, option := range options {
-		option(r)
+		option(req)
 	}
-	if body != nil {
-		r.Header.Set("Content-Type", body.ContentType())
-		if encoding := body.ContentEncoding(); encoding != nil {
-			r.Header.Set("Content-Encoding", *encoding)
-		}
-	}
-	return r, nil
+	return &Request{R: req}, nil
 }
 
-func (c *Client) doRequest(req *http.Request) (*Response, error) {
-	response, err := c.client.Do(req)
+// WithJson set request body to json format
+func (r *Request) WithJson(v interface{}) *Request {
+	body, _ := NewJsonBody(v)
+	return r.WithBody(body)
+}
+
+// WithXml set request body to xml format
+func (r *Request) WithXml(v interface{}) *Request {
+	body, _ := NewXmlBody(v)
+	return r.WithBody(body)
+}
+
+// WithBody set request body
+func (r *Request) WithBody(body RequestBody) *Request {
+	r.R.Body = ioutil.NopCloser(body)
+	return r
+}
+
+// Fetch do http request and retrieve response
+func (r *Request) Fetch(ctx context.Context, client *Client) (*Response, error) {
+	r.R = r.R.WithContext(ctx)
+	return client.doRequest(r.R)
+}
+
+// BodyJson retrieve body into json data
+func (r *Request) BodyJson(v interface{}) error {
+	if !xhttp.Method(r.R.Method).HasRequestBody() {
+		return errorBodyNotAllowed(r.R.Method)
+	}
+	if err := errorContentType(xhttp.MIMEApplicationJSON, r.R.Header); err != nil {
+		return err
+	}
+	d := json.NewDecoder(r.R.Body)
+	return d.Decode(v)
+}
+
+// BodyXml retrieve body into xml data
+func (r *Request) BodyXml(v interface{}) error {
+	if !xhttp.Method(r.R.Method).HasRequestBody() {
+		return errorBodyNotAllowed(r.R.Method)
+	}
+	if err := errorContentType(xhttp.MIMETextXML, r.R.Header); err != nil {
+		return err
+	}
+	return xml.NewDecoder(r.R.Body).Decode(v)
+}
+
+// BodyUrlEncoded retrieve body into url-encoded data
+func (r *Request) BodyUrlEncoded() (url.Values, error) {
+	err := r.R.ParseForm()
 	if err != nil {
 		return nil, err
 	}
-	return newResponse(response), nil
+	if err := errorContentType(xhttp.MIMEApplicationForm, r.R.Header); err != nil {
+		return nil, err
+	}
+	return r.R.PostForm, nil
 }
 
-func (c *Client) perform(ctx context.Context, method string, rawurl string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	r, err := c.newRequest(ctx, method, rawurl, body, options...)
+// RequestBody is abstract of request body.
+type RequestBody interface {
+	io.Reader
+	ContentType() string
+	ContentEncoding() *string
+}
+
+// JsonBody used to encode data to json format
+type JsonBody struct {
+	Body interface{}
+	r    io.Reader
+}
+
+// NewJsonBody make new RequestBody
+func NewJsonBody(data interface{}) (*JsonBody, error) {
+	b := &JsonBody{Body: data}
+	buf, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
-	return c.doRequest(r)
+	b.r = bytes.NewBuffer(buf)
+	return b, nil
 }
 
-// Head do HEAD request.
-func (c *Client) Head(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodHead, url, nil, options...)
+func (j *JsonBody) Read(p []byte) (n int, err error) { return j.r.Read(p) }
+
+func (j *JsonBody) ContentType() string { return xhttp.MIMEApplicationJSON }
+
+func (j *JsonBody) ContentEncoding() *string { return nil }
+
+// XmlBody used to encode data to xml format
+type XmlBody struct {
+	Body interface{}
+	r    io.Reader
 }
 
-// Connect do CONNECT request.
-func (c *Client) Connect(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodConnect, url, nil, options...)
+// NewXmlBody make new RequestBody
+func NewXmlBody(data interface{}) (*XmlBody, error) {
+	b := &XmlBody{Body: data}
+	buf, err := xml.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	b.r = bytes.NewBuffer(buf)
+	return b, nil
 }
 
-// Options do OPTIONS request.
-func (c *Client) Options(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodConnect, url, nil, options...)
+func (x *XmlBody) Read(p []byte) (n int, err error) { return x.r.Read(p) }
+
+func (x *XmlBody) ContentType() string { return xhttp.MIMETextXML }
+
+func (x *XmlBody) ContentEncoding() *string { return nil }
+
+// UrlEncodedBody used to encode data to url-encoded format
+type UrlEncodedBody struct {
+	Body url.Values
+	r    io.Reader
 }
 
-// Trace do TRACE request.
-func (c *Client) Trace(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodTrace, url, nil, options...)
+// NewUrlEncodedBody make new RequestBody
+func NewUrlEncodedBody(data url.Values) (*UrlEncodedBody, error) {
+	b := &UrlEncodedBody{Body: data}
+	encoded := data.Encode()
+	b.r = strings.NewReader(encoded)
+	return b, nil
 }
 
-// Get do GET request.
-func (c *Client) Get(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodGet, url, nil, options...)
+func (u *UrlEncodedBody) Read(p []byte) (n int, err error) { return u.r.Read(p) }
+
+func (u *UrlEncodedBody) ContentType() string { return xhttp.MIMEApplicationForm }
+
+func (u *UrlEncodedBody) ContentEncoding() *string { return nil }
+
+// BinaryBody used to encode data to binary format
+type BinaryBody struct {
+	Body        []byte
+	r           io.Reader
+	contentType string
 }
 
-// Post do POST request.
-func (c *Client) Post(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodPost, url, body, options...)
+// NewBinaryBody make new RequestBody
+func NewBinaryBody(data []byte, contentType string) (*BinaryBody, error) {
+	if contentType == "" {
+		return nil, errors.New("err: empty content-type")
+	}
+	return &BinaryBody{Body: data, r: bytes.NewReader(data), contentType: contentType}, nil
 }
 
-// Put do PUT request.
-func (c *Client) Put(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodPut, url, body, options...)
+func (b *BinaryBody) Read(p []byte) (n int, err error) { return b.r.Read(p) }
+
+func (b *BinaryBody) ContentType() string { return b.contentType }
+
+func (b *BinaryBody) ContentEncoding() *string { return nil }
+
+var gzipEncoding = "gzip"
+
+// GzipBody wrap low layer Body into gzip reader
+type GzipBody struct {
+	Body RequestBody
+	r    io.Reader
 }
 
-// Patch do PATCH request.
-func (c *Client) Patch(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodPatch, url, body, options...)
+// NewGzipBody make new RequestBody
+func NewGzipBody(body RequestBody, level int) (*GzipBody, error) {
+	buffer := &bytes.Buffer{}
+	w, err := gzip.NewWriterLevel(buffer, level)
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(w, body)
+	if err != nil {
+		return nil, err
+	}
+	return &GzipBody{
+		Body: body,
+		r:    buffer,
+	}, nil
 }
 
-// Delete do DELETE request.
-func (c *Client) Delete(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return c.perform(ctx, http.MethodDelete, url, body, options...)
-}
+func (g *GzipBody) Read(p []byte) (n int, err error) { return g.r.Read(p) }
 
-// Head do HEAD request.
-func Head(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Head(ctx, url, options...)
-}
+func (g *GzipBody) ContentType() string { return g.Body.ContentType() }
 
-// Connect do CONNECT request.
-func Connect(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Connect(ctx, url, options...)
-}
-
-// Options do OPTIONS request.
-func Options(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Options(ctx, url, options...)
-}
-
-// Trace do TRACE request.
-func Trace(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Trace(ctx, url, options...)
-}
-
-// Get do GET request.
-func Get(ctx context.Context, url string, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Get(ctx, url, options...)
-}
-
-// Post do POST request.
-func Post(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Post(ctx, url, body, options...)
-}
-
-// Put do PUT request.
-func Put(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Put(ctx, url, body, options...)
-}
-
-// Patch do PATCH request.
-func Patch(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Patch(ctx, url, body, options...)
-}
-
-// Delete do DELETE request.
-func Delete(ctx context.Context, url string, body xhttp.RequestBody, options ...RequestOption) (*Response, error) {
-	return DefaultClient.Delete(ctx, url, body, options...)
-}
+func (g *GzipBody) ContentEncoding() *string { return &gzipEncoding }

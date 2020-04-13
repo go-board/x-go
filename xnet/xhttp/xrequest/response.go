@@ -3,7 +3,6 @@ package xrequest
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -45,7 +44,7 @@ func (r *Response) Close() error { return r.Response.Body.Close() }
 
 // JSON unmarshal response body data into v.
 func (r *Response) JSON(v interface{}) error {
-	if err := errorContentTypeMismatch(xhttp.MIMEApplicationJSON, r.Response); err != nil {
+	if err := errorContentType(xhttp.MIMEApplicationJSON, r.Response.Header); err != nil {
 		return err
 	}
 	d := json.NewDecoder(r.Response.Body)
@@ -55,7 +54,7 @@ func (r *Response) JSON(v interface{}) error {
 
 // XML unmarshal response body data into v.
 func (r *Response) XML(v interface{}) error {
-	if err := errorContentTypeMismatch(xhttp.MIMETextXML, r.Response); err != nil {
+	if err := errorContentType(xhttp.MIMETextXML, r.Response.Header); err != nil {
 		return err
 	}
 	return xml.NewDecoder(r.Response.Body).Decode(v)
@@ -102,12 +101,4 @@ func (r *Response) DownloadFile(name string) error {
 	defer r.Close()
 	_, err = io.Copy(f, r.Response.Body)
 	return err
-}
-
-func errorContentTypeMismatch(expected string, r *http.Response) error {
-	contentType := r.Header.Get(xhttp.HeaderContentType)
-	if expected == contentType {
-		return nil
-	}
-	return fmt.Errorf("expected content-type is %s, but got %s", expected, contentType)
 }
