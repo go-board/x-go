@@ -1,8 +1,11 @@
 # XNet
 标准库实现了大量的net函数，这里作为补充，提供了`LimitedListener`和`KeepaliveListener`, 以及一个辅助函数`PrivateAddress`获取内网地址。
 
+
+### [xhttp](./xhttp/README.md)
+
 ## LimitedListener
-对最大同时连接数做了上限限制`n`
+对最大同时连接数做了上限限制 `n`
 ```go
 package xnet
 
