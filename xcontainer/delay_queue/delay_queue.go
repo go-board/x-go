@@ -1,6 +1,7 @@
 package delay_queue
 
 import (
+	"math"
 	"time"
 
 	"github.com/go-board/x-go/types"
@@ -50,16 +51,23 @@ func (q *DelayQueue) Push(task *Task) {
 
 // Pop try to pop nearest expired data.
 func (q *DelayQueue) Pop() (interface{}, bool) {
+	val, _, ok := q.pop()
+	return val, ok
+}
+
+func (q *DelayQueue) pop() (interface{}, time.Duration, bool) {
 	task := q.q.Pop()
 	if task == nil {
-		return nil, false
+		return nil, time.Duration(math.MaxInt64), false
 	}
 	t := task.(*Task)
-	if !t.at.After(time.Now()) {
-		return t.data, true
+	now := time.Now()
+	duration := t.at.Sub(now)
+	if !t.at.After(now) {
+		return t.data, 0, true
 	}
 	q.q.Push(task)
-	return nil, false
+	return nil, duration, false
 }
 
 // BlockPop must get a data otherwise wait for data ready.
