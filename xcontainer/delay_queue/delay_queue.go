@@ -47,15 +47,20 @@ func New() *DelayQueue {
 // Push new data into delay queue.
 func (q *DelayQueue) Push(task *Task) {
 	q.q.Push(task)
+	// this should not block
+	select {
+	case q.notify <- struct{}{}:
+	default:
+	}
 }
 
 // Pop try to pop nearest expired data.
 func (q *DelayQueue) Pop() (interface{}, bool) {
-	val, _, ok := q.pop()
+	val, _, ok := q.popNearest()
 	return val, ok
 }
 
-func (q *DelayQueue) pop() (interface{}, time.Duration, bool) {
+func (q *DelayQueue) popNearest() (interface{}, time.Duration, bool) {
 	task := q.q.Pop()
 	if task == nil {
 		return nil, time.Duration(math.MaxInt64), false
@@ -73,13 +78,18 @@ func (q *DelayQueue) pop() (interface{}, time.Duration, bool) {
 // BlockPop must get a data otherwise wait for data ready.
 func (q *DelayQueue) BlockPop() interface{} {
 	for {
-		// todo: optimization CPU usage
-		//   1. try pop, if got, return, else go to step 2
-		//   2. get task awake time, and block on it, and listen on notify channel for pushing new data
-		//   3. if timeout or receive notification, go to step 1
-		v, ok := q.Pop()
+		v, duration, ok := q.popNearest()
 		if ok {
+			// drain notification if possible, otherwise we may get old notification
+			select {
+			case <-q.notify:
+			default:
+			}
 			return v
+		}
+		select {
+		case <-time.NewTimer(duration).C:
+		case <-q.notify:
 		}
 	}
 }
