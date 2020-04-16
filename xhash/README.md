@@ -11,7 +11,7 @@ func Sum32(data []byte) uint32
 func Sum32String(str string) uint32
 ```
 
-## Hash64(XXHASH)
+## Hash64(CRC64)
 ```go
 package xhash
 
