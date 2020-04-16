@@ -11,38 +11,25 @@ import (
 // but in application is string slice mode, this will translate automatically.
 type StringArray []string
 
-func (c *StringArray) Scan(src interface{}) error {
+func (a StringArray) String() string {
+	return strings.Join(a, ",")
+}
+
+func (a *StringArray) Scan(src interface{}) error {
 	switch x := src.(type) {
 	case string:
-		*c = strings.Split(x, ",")
+		*a = strings.Split(x, ",")
 		return nil
 	case []byte:
-		*c = strings.Split(string(x), ",")
+		*a = strings.Split(string(x), ",")
 		return nil
 	default:
 		return nil
 	}
 }
 
-func (c StringArray) ConvertValue(v interface{}) (driver.Value, error) {
-	switch x := v.(type) {
-	case *StringArray:
-		return x.Value()
-	case StringArray:
-		return x.Value()
-	case []string:
-		return StringArray(x).Value()
-	case string:
-		return x, nil
-	case []byte:
-		return x, nil
-	default:
-		return nil, nil
-	}
-}
-
-func (c StringArray) Value() (driver.Value, error) {
-	x := strings.Join(c, ",")
+func (a StringArray) Value() (driver.Value, error) {
+	x := strings.Join(a, ",")
 	return x, nil
 }
 
@@ -65,45 +52,32 @@ func NewEnum(valueMap map[string]int, defs ...string) *Enum {
 	}
 }
 
-func (c *Enum) String() string {
-	return c.value
+func (a *Enum) String() string {
+	return a.value
 }
 
-func (c *Enum) fromInt(i int) {
-	c.value = c.keyMap[i]
+func (a *Enum) fromInt(i int) {
+	a.value = a.keyMap[i]
 }
 
-func (c *Enum) Scan(src interface{}) error {
+func (a *Enum) Scan(src interface{}) error {
 	switch x := src.(type) {
 	case int:
-		c.fromInt(x)
+		a.fromInt(x)
 		return nil
 	case int64:
-		c.fromInt(int(x))
+		a.fromInt(int(x))
 		return nil
 	case int32:
-		c.fromInt(int(x))
+		a.fromInt(int(x))
 		return nil
 	default:
 		return nil
 	}
 }
 
-func (c Enum) ConvertValue(v interface{}) (driver.Value, error) {
-	switch x := v.(type) {
-	case *Enum:
-		return x.Value()
-	case Enum:
-		return x.Value()
-	case string:
-		return c.valueMap[x], nil
-	default:
-		return nil, nil
-	}
-}
-
-func (c Enum) Value() (driver.Value, error) {
-	return c.valueMap[c.value], nil
+func (a Enum) Value() (driver.Value, error) {
+	return a.valueMap[a.value], nil
 }
 
 // IPV4 present a selectable of ipv4 address which store in database in int mode,
@@ -125,6 +99,15 @@ func (a IPV4) toUint32() uint32 {
 	return uint32(a.ip[0])<<24 + uint32(a.ip[1])<<16 + uint32(a.ip[2])<<8 + uint32(a.ip[3])
 }
 
+func (a *IPV4) fromUint32(u uint32) error {
+	a.ip[0] = uint8(u >> 24)
+	a.ip[1] = uint8(u >> 16)
+	a.ip[2] = uint8(u >> 8)
+	a.ip[3] = uint8(u)
+	a.ipStr = a.ip.String()
+	return nil
+}
+
 func (a IPV4) IP() net.IP {
 	return a.ip
 }
@@ -134,13 +117,19 @@ func (a IPV4) String() string {
 }
 
 func (a *IPV4) Scan(src interface{}) error {
-	panic("implement me")
+	a.ip = a.ip[:0]
+	switch x := src.(type) {
+	case uint32:
+		return a.fromUint32(x)
+	case uint64:
+		return a.fromUint32(uint32(x))
+	case int64:
+		return a.fromUint32(uint32(x))
+	default:
+		return errors.New("err: unsupported type")
+	}
 }
 
 func (a IPV4) Value() (driver.Value, error) {
 	return a.toUint32(), nil
-}
-
-func (a IPV4) ConvertValue(v interface{}) (driver.Value, error) {
-	return a.Value()
 }
