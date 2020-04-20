@@ -1,4 +1,4 @@
-package delay_queue
+package queue
 
 import (
 	"math"
@@ -8,13 +8,13 @@ import (
 	"github.com/go-board/x-go/xcontainer/priority_queue"
 )
 
-type Task struct {
+type DelayTask struct {
 	data interface{}
 	at   time.Time
 }
 
-func (t Task) Compare(o types.Comparable) types.Ordering {
-	oo := o.(*Task)
+func (t DelayTask) Compare(o types.Comparable) types.Ordering {
+	oo := o.(*DelayTask)
 	if t.at.Before(oo.at) {
 		return types.OrderingLess
 	}
@@ -24,12 +24,12 @@ func (t Task) Compare(o types.Comparable) types.Ordering {
 	return types.OrderingGreater
 }
 
-func NewTask(v interface{}, at time.Time) *Task {
-	return &Task{data: v, at: at}
+func NewTimedTask(v interface{}, at time.Time) *DelayTask {
+	return &DelayTask{data: v, at: at}
 }
 
-func NewDelayTask(v interface{}, d time.Duration) *Task {
-	return NewTask(v, time.Now().Add(d))
+func NewDelayTask(v interface{}, d time.Duration) *DelayTask {
+	return NewTimedTask(v, time.Now().Add(d))
 }
 
 type DelayQueue struct {
@@ -37,7 +37,7 @@ type DelayQueue struct {
 	notify chan struct{}
 }
 
-func New() *DelayQueue {
+func NewDelayQueue() *DelayQueue {
 	return &DelayQueue{
 		q:      priority_queue.NewComparablePriorityQueue(false),
 		notify: make(chan struct{}, 1),
@@ -45,7 +45,7 @@ func New() *DelayQueue {
 }
 
 // Push new data into delay queue.
-func (q *DelayQueue) Push(task *Task) {
+func (q *DelayQueue) Push(task *DelayTask) {
 	q.q.Push(task)
 	// this should not block
 	select {
@@ -65,7 +65,7 @@ func (q *DelayQueue) popNearest() (interface{}, time.Duration, bool) {
 	if task == nil {
 		return nil, time.Duration(math.MaxInt64), false
 	}
-	t := task.(*Task)
+	t := task.(*DelayTask)
 	now := time.Now()
 	duration := t.at.Sub(now)
 	if !t.at.After(now) {
@@ -87,6 +87,7 @@ func (q *DelayQueue) BlockPop() interface{} {
 			}
 			return v
 		}
+		// block until timeout or new element pushed
 		select {
 		case <-time.NewTimer(duration).C:
 		case <-q.notify:

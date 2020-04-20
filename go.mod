@@ -5,12 +5,11 @@ go 1.13
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-redsync/redsync v1.4.1
+	github.com/go-redsync/redsync v1.4.2
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/btree v1.0.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/smartystreets-prototypes/go-disruptor v0.0.0-20200316140655-c96477fd7a6a
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/spf13/afero v1.2.2
 	github.com/stretchr/testify v1.5.1
