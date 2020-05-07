@@ -46,9 +46,14 @@ func NewEnum(valueMap map[string]int, defs ...string) *Enum {
 	if len(defs) > 0 {
 		def = defs[0]
 	}
+	keyMap := make(map[int]string)
+	for v, i := range valueMap {
+		keyMap[i] = v
+	}
 	return &Enum{
 		value:    def,
 		valueMap: valueMap,
+		keyMap:   keyMap,
 	}
 }
 
