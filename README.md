@@ -6,8 +6,6 @@ go标准库的拓展，提供各种便利的工具
 
 [concurrent](concurrent/README.md) 并发操作
 
-[iter](iter/README.md) 简单的迭代器
-
 [lock](lock/README.md) 分布式锁与租约
 
 [result](result/README.md) Rust 中的Result类型，在Go中的实现

@@ -6,8 +6,6 @@ E**x**tended **Go** Std Library.
 
 [concurrent](concurrent/README_EN.md) concurrent operation
 
-[iter](iter/README_EN.md) simple iterator
-
 [lock](lock/README_EN.md) distributed lock/lease
 
 [result](result/README_EN.md) rust Result like type, but in go.
