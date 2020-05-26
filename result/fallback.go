@@ -1,15 +1,17 @@
 package result
 
-// Wrap a function with recover and do nothing.
-func Wrap(fn func()) {
-	defer recover()
-	fn()
+// Go a function with recover and do nothing.
+func Go(fn func()) {
+	SafeGo(fn, nil)
 }
 
-func WrapCallback(fn func(), handle func(x interface{})) {
+// SafeGo a function with recover and do callback.
+func SafeGo(fn func(), handle func(x interface{})) {
 	defer func() {
 		if x := recover(); x != nil {
-			handle(x)
+			if handle != nil {
+				handle(x)
+			}
 		}
 	}()
 	fn()
