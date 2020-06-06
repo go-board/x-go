@@ -19,6 +19,15 @@ func (md Metadata) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
+// Clone return the copy of original Metadata
+func (md Metadata) Clone() Metadata {
+	newMd := make(Metadata, len(md))
+	for k, v := range md {
+		newMd[k] = v
+	}
+	return newMd
+}
+
 func (md Metadata) ValueList(key string) []string { return strings.Split(md[key], ",") }
 
 var metadataKey = struct{}{}
