@@ -67,3 +67,13 @@ func WithRequestBody(body RequestBody) RequestOption {
 		req.Body = ioutil.NopCloser(body)
 	}
 }
+
+// WithAddQuery add query param to url.
+func WithAddQuery(key, value string) RequestOption {
+	return func(req *http.Request) { req.URL.Query().Add(key, value) }
+}
+
+// WithSetQuery set query param to url.
+func WithSetQuery(key, value string) RequestOption {
+	return func(req *http.Request) { req.URL.Query().Set(key, value) }
+}
