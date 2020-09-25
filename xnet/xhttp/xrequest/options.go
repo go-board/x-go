@@ -10,6 +10,7 @@ import (
 type RequestOption func(req *http.Request)
 
 // AddHeader append key/value pair to header.
+// Deprecated: use WithAddHeader replaced.
 func AddHeader(key string, value string) RequestOption {
 	return func(req *http.Request) {
 		req.Header.Add(key, value)
@@ -28,7 +29,22 @@ func AddHeaderMap(h http.Header) RequestOption {
 }
 
 // WithHeader replace or set existing header with key/value pair.
+// Deprecated: use WithSetHeader replaced.
 func WithHeader(key string, value string) RequestOption {
+	return func(req *http.Request) {
+		req.Header.Set(key, value)
+	}
+}
+
+// WithAddHeader append header value to key.
+func WithAddHeader(key string, value string) RequestOption {
+	return func(req *http.Request) {
+		req.Header.Add(key, value)
+	}
+}
+
+// WithSetHeader upsert header value to key.
+func WithSetHeader(key string, value string) RequestOption {
 	return func(req *http.Request) {
 		req.Header.Set(key, value)
 	}
@@ -50,9 +66,7 @@ func WithForm(f url.Values) RequestOption {
 
 // WithContentType set `Content-Type` header.
 func WithContentType(contentType string) RequestOption {
-	return func(req *http.Request) {
-		req.Header.Set("Content-Type", contentType)
-	}
+	return WithSetHeader("Content-Type", contentType)
 }
 
 // AddCookie append cookie to request.
@@ -70,10 +84,18 @@ func WithRequestBody(body RequestBody) RequestOption {
 
 // WithAddQuery add query param to url.
 func WithAddQuery(key, value string) RequestOption {
-	return func(req *http.Request) { req.URL.Query().Add(key, value) }
+	return func(req *http.Request) {
+		q := req.URL.Query()
+		q.Add(key, value)
+		req.URL.RawQuery = q.Encode()
+	}
 }
 
 // WithSetQuery set query param to url.
 func WithSetQuery(key, value string) RequestOption {
-	return func(req *http.Request) { req.URL.Query().Set(key, value) }
+	return func(req *http.Request) {
+		q := req.URL.Query()
+		q.Set(key, value)
+		req.URL.RawQuery = q.Encode()
+	}
 }
