@@ -6,18 +6,15 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-redsync/redsync v1.4.2
-	github.com/gofrs/uuid v3.2.0+incompatible
+	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/btree v1.0.0
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/spf13/afero v1.2.2
-	github.com/stretchr/testify v1.5.1
-	go.uber.org/zap v1.15.0
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/tools v0.0.0-20200308013534-11ec41452d41
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	github.com/spf13/afero v1.4.1
+	github.com/stretchr/testify v1.6.1
+	go.uber.org/zap v1.16.0
+	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 )
