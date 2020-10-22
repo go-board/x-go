@@ -28,10 +28,16 @@ func (i *Int64String) UnmarshalJSON(bytes []byte) error {
 	if bytes2.HasPrefix(bytes, []byte{'"'}) {
 		bytes = bytes[1 : len(bytes)-1]
 	}
-	m, err := strconv.ParseInt(string(bytes), 10, 32)
+	m, err := strconv.ParseInt(string(bytes), 10, 64)
 	if err != nil {
 		return err
 	}
 	*i = Int64String(m)
 	return nil
 }
+
+func (i Int64String) Int64() int64 { return int64(i) }
+func (i Int64String) Int32() int32 { return int32(i) }
+func (i Int64String) Int16() int16 { return int16(i) }
+func (i Int64String) Int8() int8   { return int8(i) }
+func (i Int64String) Int() int     { return int(i) }
