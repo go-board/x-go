@@ -3,21 +3,12 @@ package metadata
 import (
 	"context"
 	"strings"
-
-	"go.uber.org/zap/zapcore"
 )
 
 // Metadata is an attribute list, and will be propagation to the whole call chain.
 // In process, will inject to context.Context.
 // Cross process, will serialize to header for HTTPHeader/GRPC.
 type Metadata map[string]string
-
-func (md Metadata) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	for k, v := range md {
-		enc.AddString(k, v)
-	}
-	return nil
-}
 
 // Clone return the copy of original Metadata
 func (md Metadata) Clone() Metadata {

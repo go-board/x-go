@@ -24,8 +24,6 @@ go标准库的拓展，提供各种便利的工具
 
 [xdebug](xdebug/README.md) 调试相关的工具
 
-[xfs](xfs/README.md) 文件系统抽象
-
 [xhash](xhash/README.md) hash拓展
 
 [xnet](xnet/README.md) net拓展

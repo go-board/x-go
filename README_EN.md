@@ -24,8 +24,6 @@ E**x**tended **Go** Std Library.
 
 [xdebug](xdebug/README_EN.md) debug print, http, runtime
 
-[xfs](xfs/README_EN.md) abstraction of file system, thanks [spf13/afero](github.com/spf13/afero)
-
 [xhash](xhash/README_EN.md) hash interface and utils
 
 [xnet](xnet/README_EN.md) net utils and http utils
