@@ -11,7 +11,7 @@ type MutableString struct {
 
 // FromString create MutableString from const string
 func FromString(s string) *MutableString {
-	vec := make([]byte, len(s), len(s))
+	vec := make([]byte, len(s))
 	copy(vec, s)
 	return &MutableString{vec: vec}
 }

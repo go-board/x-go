@@ -19,7 +19,7 @@ func TestMutableStringInsert(t *testing.T) {
 	})
 	t.Run("InsertString", func(t *testing.T) {
 		s := FromString("Hello,")
-		s.InsertString(s.Len(), "world")
+		s.InsertString(s.Length(), "world")
 		require.Equal(t, "Hello,world", s.ToString())
 	})
 }
