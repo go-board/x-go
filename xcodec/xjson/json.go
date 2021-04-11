@@ -23,3 +23,8 @@ func (jsonc) Unmarshal(data []byte, v interface{}) error {
 func init() {
 	xcodec.Register(jsonc{})
 }
+
+func Jsonify(v interface{}) string {
+	data, _ := json.Marshal(v)
+	return string(data)
+}
