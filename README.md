@@ -1,5 +1,7 @@
 # x-go
 
+> 如果想要使用泛型版本，移步至[std](https://github.com/go-board/std)
+
 go标准库的拓展，提供各种便利的工具
 
 [English Version](./README_EN.md)
